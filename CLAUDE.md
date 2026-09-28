@@ -6,6 +6,12 @@ data is fictional (see `PearlSmile_Dental_Demo_Data.pdf`). Branding says **Pearl
 never revert to the old "Demo-Dental.com" (this fork replaced it) and never call it
 "AI/virtual dentistry" — it's a physical Goan clinic, not a SaaS.
 
+## Current State
+
+Site is **live** and shipped: rebranded to PearlSmile, deployed to Pages, custom 404 working.
+Working tree is clean. Next likely work: add a favicon/logo asset, or enhance one of the
+sections (dentist bios pages, patient testimonials, gallery) — no pending changes.
+
 ## Stack & Run
 
 - Install: `npm install`
@@ -20,7 +26,7 @@ never revert to the old "Demo-Dental.com" (this fork replaced it) and never call
 - Redeploy after changes: `npm run build && npx gh-pages -d dist --dotfiles`, then push source to `main`. Pages auto-builds on push to `gh-pages` (Pages is already enabled for the repo).
 - `vite.config.ts` hardcodes `base: '/pearlsmile-dental/'` and `App.tsx` passes it to `<BrowserRouter basename={import.meta.env.BASE_URL}>` — these two must stay in sync. If the repo/site name ever changes, change BOTH or you get broken assets or "No routes matched".
 - Never use root-absolute hrefs (`/#services`) anywhere — they escape the `/pearlsmile-dental/` base on Pages. Use page-relative (`#services`). This bit Header/Footer nav once already.
-- Deep links like `/privacy-policy` 404 on refresh (no SPA fallback on Pages); client-side navigation works fine. Add the `404.html` redirect trick if direct legal-page links are ever needed.
+- **Deep links work on refresh** via the custom 404 (see below) — GitHub Pages has no SPA fallback but serves `404.html` for any missing path, and that page boots the same app so `/privacy-policy` renders correctly even on a hard refresh.
 - CDN lag is real: right after publishing, Pages can serve a stale bundle for a couple minutes. Poll for the new hashed asset name in curl'd HTML before concluding a deploy failed.
 
 ## Data & Content
@@ -48,6 +54,14 @@ never revert to the old "Demo-Dental.com" (this fork replaced it) and never call
 - Signature motif: **smile-arch** — a gold circular arch + smile line (`.smile-arch` CSS class) used as the logo monogram and repeated in the Dentists section.
 - Design rules that keep this site from drifting back to the old SaaS look: no teal/slate, no gradient text, no `background-clip: text`, no card-grid-of-icons uniformity (services are editorial numbered rows), no "Smart Scan" / AI-copy anywhere.
 - The impeccable design hook flags SmartScan-style `border-[8px]` as side-tab/border-accent — N/A now (component was deleted). The `overused-font` rule flags `src/index.css` L1 — false positive: Instrument Serif / Figtree / IBM Plex Mono are not on the guarded list.
+
+## Custom 404 (SPA fallback)
+
+- `src/components/NotFound.tsx` — the on-brand 404 ("This page has a missing tooth", smile-arch mark, Back home + Book CTA). Rendered by the catch-all `<Route path="*">` in `App.tsx`.
+- `src/404.tsx` + root `404.html` — the second Vite entry point (`build.rollupOptions.input` in `vite.config.ts`). GitHub Pages serves `404.html` for ANY missing path, and it boots the same app; the router then resolves the real URL (deep links) or shows `NotFound`. Asset refs in it are base-absolute, so they resolve at any subpath.
+- Keep `404.html`'s comment minimal — it ships into `dist/` verbatim and shows in page source.
+- Vite's multi-page build emits a shared `assets/index-*.js` chunk (the app) plus tiny per-entry chunks. Both `index.html` and `404.html` must reference the SAME shared chunk + CSS or the 404 page won't be styled.
+- Local verify: `navigate` to `http://127.0.0.1:3100/pearlsmile-dental/<nonexistent>` and check the h1/mark + working "Back home" link via `browser_evaluate`. On Pages, a missing path returns HTTP 404 with our custom HTML in the body — the React copy ("missing tooth") only appears after boot, so check the browser DOM, not `curl`'d raw HTML.
 
 ## Gotchas
 
